@@ -28,28 +28,29 @@ function drawDifferenceRegions(scene,level=0) {
   return ids;
 }
 function beginDifferences(scene,level=0) {
-  pictureGame={kind:'differences',scene,level:Math.max(0,level%DIFFERENCE_LEVELS),changed:drawDifferenceRegions(scene,level),found:[],done:false};
+  pictureGame={kind:'differences',scene,level:Math.max(0,level%DIFFERENCE_LEVELS),changed:drawDifferenceRegions(scene,level),found:[],hinted:[],hintsLeft:3,done:false};
   page='differences';paintDifferences();window.scrollTo({top:0,behavior:'instant'});
 }
 function differenceCoordinates(region) {return {x:region.x/768*100,y:region.y/512*100,rx:region.rx/768*100,ry:region.ry/512*100};}
 function objectPatch(scene,region) {
   const {x,y,rx,ry}=differenceCoordinates(region), size=Math.max(rx,ry)*2;
-  return '<div class="object-patch patch-'+region.type+'" aria-hidden="true" style="--patch-x:'+x+'%;--patch-y:'+y+'%;--patch-w:'+Math.max(6,rx*2)+'%;--patch-h:'+Math.max(7,ry*2)+'%;--patch-size:'+size+'px;--patch-turn:'+(region.variant%4*90)+'deg"></div>';
+  const glyph={add:'✦',remove:'',shrink:'●',rotate:'➤',pattern:'▧',swap:'♡',grow:'●',ribbon:'⌁',tint:'●',sparkle:'✦'}[region.type];
+  return '<div class="object-patch patch-'+region.type+'" aria-hidden="true" style="--patch-x:'+x+'%;--patch-y:'+y+'%;--patch-w:'+Math.max(6,rx*2)+'%;--patch-h:'+Math.max(7,ry*2)+'%;--patch-size:'+size+'px;--patch-turn:'+(region.variant%4*90)+'deg"><span class="difference-glyph">'+glyph+'</span></div>';
 }
-function objectSpot(region,index,found,right) {
+function objectSpot(region,index,found,hinted,right) {
   const {x,y,rx,ry}=differenceCoordinates(region), position='left:'+x+'%;top:'+y+'%;width:'+Math.max(8,rx*2)+'%;height:'+Math.max(10,ry*2)+'%';
   // 兩張圖都可以點選。孩子常會先在原圖發現線索；舊版只有右圖能按，
   // 在觸控裝置上很容易誤以為關卡失效。
-  return '<button class="object-spot'+(found?' found':'')+'" data-spot="'+index+'" style="'+position+'" aria-label="'+(found?region.label+'，已找到':(right?'查看變化圖的':'查看原圖的')+region.label)+'" '+(found?'disabled':'')+'>'+(found?'✓':'')+'</button>';
+  return '<button class="object-spot'+(found?' found':'')+(hinted&&!found?' hinted':'')+'" data-spot="'+index+'" style="'+position+'" aria-label="'+(found?region.label+'，已找到':(hinted?'提示：':'')+(right?'查看變化圖的':'查看原圖的')+region.label)+'" '+(found?'disabled':'')+'>'+(found?'✓':'')+'</button>';
 }
 function differenceScene(g,right) {
   const regions=differenceVariant(g.scene,g.level), patches=right?g.changed.map(i=>objectPatch(g.scene,regions[i])).join(''):'';
-  return '<figure><figcaption>'+(right?'變化圖':'原圖')+'</figcaption><div class="scene-art compare-board object-board level-'+(g.level%5)+'" style="'+sceneStyle(g.scene)+';--scene-variant:'+g.level+'">'+patches+regions.map((region,i)=>objectSpot(region,i,g.found.includes(i),right)).join('')+'</div></figure>';
+  return '<figure><figcaption>'+(right?'變化圖':'原圖')+'</figcaption><div class="scene-art compare-board object-board level-'+(g.level%5)+'" style="'+sceneStyle(g.scene)+';--scene-variant:'+g.level+'">'+patches+regions.map((region,i)=>objectSpot(region,i,g.found.includes(i),g.hinted.includes(i),right)).join('')+'</div></figure>';
 }
 function paintDifferences() {
   const g=pictureGame,title=SCENE_PACKS[g.scene];
-  shell('<section class="activity-page"><button class="back" id="picture-back">← 棋類與拼圖</button><h1>'+title.character+' · 找不同</h1><p>第 '+(g.level+1)+'／'+DIFFERENCE_LEVELS+' 張構圖挑戰：兩張圖有 <strong>10 處</strong>不同。除了變色，還藏了新增、消失、縮放、旋轉與圖案改變。</p><div class="diff-levels" aria-label="找不同關卡選擇">'+Array.from({length:DIFFERENCE_LEVELS},(_,i)=>'<button data-diff-level="'+i+'" class="'+(i===g.level?'current':'')+'" aria-label="第 '+(i+1)+' 張">'+(i+1)+'</button>').join('')+'</div><p class="board-status" role="status">找到 '+g.found.length+'／'+g.changed.length+' 處</p><div class="compare-pair">'+differenceScene(g,false)+differenceScene(g,true)+'</div><div id="picture-reward"></div><div class="game-actions"><button class="secondary" id="diff-retry">重看這張</button><button class="primary" id="diff-next">下一張構圖 →</button></div></section>','arcade');
-  $('#picture-back').onclick=()=>navigate('arcade');$('#diff-retry').onclick=()=>beginDifferences(g.scene,g.level);$('#diff-next').onclick=()=>beginDifferences(g.scene,(g.level+1)%DIFFERENCE_LEVELS);$$('[data-diff-level]').forEach(button=>button.onclick=()=>beginDifferences(g.scene,+button.dataset.diffLevel));
+  shell('<section class="activity-page"><button class="back" id="picture-back">← 棋類與拼圖</button><h1>'+title.character+' · 找不同</h1><p>第 '+(g.level+1)+'／'+DIFFERENCE_LEVELS+' 張構圖挑戰：兩張圖有 <strong>10 處</strong>真正的物件變化。找到後會自動圈選；原圖或變化圖都可以按。</p><div class="diff-levels" aria-label="找不同關卡選擇">'+Array.from({length:DIFFERENCE_LEVELS},(_,i)=>'<button data-diff-level="'+i+'" class="'+(i===g.level?'current':'')+'" aria-label="第 '+(i+1)+' 張">'+(i+1)+'</button>').join('')+'</div><p class="board-status" role="status">找到 '+g.found.length+'／'+g.changed.length+' 處'+(g.hinted.length?' · 已提示 '+g.hinted.length+' 處':'')+'</p><div class="compare-pair">'+differenceScene(g,false)+differenceScene(g,true)+'</div><div id="picture-reward"></div><div class="game-actions"><button class="secondary" id="diff-hint" '+(!g.hintsLeft||g.done?'disabled':'')+'>💡 提示（剩 '+g.hintsLeft+' 次）</button><button class="secondary" id="diff-retry">重看這張</button><button class="primary" id="diff-next">下一張構圖 →</button></div></section>','arcade');
+  $('#picture-back').onclick=()=>navigate('arcade');$('#diff-retry').onclick=()=>beginDifferences(g.scene,g.level);$('#diff-next').onclick=()=>beginDifferences(g.scene,(g.level+1)%DIFFERENCE_LEVELS);$('#diff-hint').onclick=()=>{const next=g.changed.find(i=>!g.found.includes(i)&&!g.hinted.includes(i));if(next===undefined)return;g.hinted.push(next);g.hintsLeft--;sound('hint');paintDifferences();$('.board-status').textContent+='，提示圈已標出一個線索。';};$$('[data-diff-level]').forEach(button=>button.onclick=()=>beginDifferences(g.scene,+button.dataset.diffLevel));
   const inspect=event=>{if(g.done)return;const spot=event.target.closest('[data-spot]'),index=spot?+spot.dataset.spot:-1;if(index<0||g.found.includes(index))return;if(!g.changed.includes(index)){sound('hint');$('.board-status').textContent='找到 '+g.found.length+'／10 處，這裡相同，再仔細看物件的形狀、數量和方向。';return;}g.found.push(index);g.done=g.found.length===g.changed.length;sound('found');paintDifferences();$('.board-status').textContent+='，找到「'+differenceVariant(g.scene,g.level)[index].label+'」！';if(g.done)pictureWon('10 處不同全部找到！');else $$('[data-spot]').find(button=>!button.disabled)?.focus({preventScroll:true});};
   $$('.object-board').forEach(board=>board.onclick=inspect);
 }

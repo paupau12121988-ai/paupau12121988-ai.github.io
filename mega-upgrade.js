@@ -87,7 +87,8 @@ const UPGRADE_STICKER_SPECS=[
 ];
 UPGRADE_STICKER_SPECS.forEach(([category,character,series,names])=>names.split('、').forEach((name,i)=>{
   const full=character+'・'+name;
-  if(!STICKERS.some(item=>item.name===full)) STICKERS.push({name:full,frame:i%12,series,tier:3+(i%2),upgrade:true,hunter:category==='hunters',category,subgroup:category==='kuromi'?'月影甜點隊':category==='ping'?'愛心魔法小隊':series,dog:category==='dog',family:category==='ping'||category==='melody'});
+  const subgroup=['日常收藏','冒險收藏','節慶收藏'][i%3];
+  if(!STICKERS.some(item=>item.name===full)) STICKERS.push({name:full,frame:i%12,series,tier:3+(i%2),upgrade:true,hunter:category==='hunters',category,subgroup,dog:category==='dog',family:category==='ping'||category==='melody'});
 }));
 
 const upgradeOriginalRewardSticker=rewardSticker;
@@ -99,9 +100,10 @@ rewardSticker=function(item) {
 stickerCategory=function(item) { return item.hunter?'hunters':item.category||upgradeOriginalStickerCategory(item); };
 const UPGRADE_COLLECTION_PACKS=[...SCENE_PACKS,{id:'hunters',character:'卡通獵魔女團',name:'守護樂園舞台'}];
 
-function upgradePoster(scene,index) {
-  if(scene.id==='hunters') return '<div class="hunters-poster" role="img" aria-label="卡通獵魔女團收藏大圖">'+hunterSprite(0,'獵魔女團成員')+hunterSprite(1,'獵魔女團成員')+hunterSprite(2,'獵魔女團成員')+'<b>守護樂園演唱會</b></div>';
-  return sceneArt(index,scene.character+'收藏大圖').replace('scene-art','scene-art award-scene');
+function upgradePoster(scene,index,subgroup='') {
+  const title=scene.character+(subgroup?'・'+subgroup:'')+'隱藏收藏大圖';
+  if(scene.id==='hunters') return '<div class="hunters-poster" role="img" aria-label="'+esc(title)+'">'+hunterSprite(0,'獵魔女團成員')+hunterSprite(1,'獵魔女團成員')+hunterSprite(2,'獵魔女團成員')+'<b>'+esc(subgroup||'守護樂園演唱會')+'</b></div>';
+  return sceneArt(index,title).replace('scene-art','scene-art award-scene');
 }
 paintStickerBook=function() {
   const book=$('#sticker-book'); if(!book) return;
@@ -109,8 +111,8 @@ paintStickerBook=function() {
   book.innerHTML=UPGRADE_COLLECTION_PACKS.map((scene,sceneIndex)=>{
     const cards=STICKERS.map((item,i)=>({item,i})).filter(({item})=>stickerCategory(item)===scene.id);
     const collected=cards.filter(({i})=>state.stickers.includes(i)).length, complete=collected===cards.length;
-    const groups=cards.reduce((all,card)=>{const key=card.item.subgroup||card.item.series||'冒險篇';(all[key]??=[]).push(card);return all;},{});
-    const groupHTML=Object.entries(groups).map(([name,items])=>'<section class="sticker-subgroup"><h3>'+esc(name)+' <small>'+items.filter(({i})=>state.stickers.includes(i)).length+'／'+items.length+'</small></h3><div class="sticker-grid character-grid">'+items.map(({item,i})=>state.stickers.includes(i)?'<article class="sticker character-card tier-'+item.tier+'">'+rewardSticker(item)+'<b>'+esc(item.name)+'</b><small>'+esc(item.series)+'</small></article>':'<div class="sticker character-card locked" aria-label="尚未收藏的角色牌"><span class="locked-character" aria-hidden="true">?</span><small>'+esc(item.series)+' · 待收藏</small></div>').join('')+'</div></section>').join('');
+    const groups=cards.reduce((all,card)=>{const key=card.item.subgroup||card.item.series||'經典收藏';(all[key]??=[]).push(card);return all;},{});
+    const groupHTML=Object.entries(groups).map(([name,items])=>{const got=items.filter(({i})=>state.stickers.includes(i)).length,ready=got===items.length;const hidden=ready?'<details class="set-poster subgroup-poster"><summary>✦ 翻開「'+esc(name)+'」隱藏大圖</summary>'+upgradePoster(scene,sceneIndex,name)+'</details>':'<p class="locked-poster">🔒 此小類再收集 '+(items.length-got)+' 張，可翻開專屬隱藏大圖。</p>';return '<section class="sticker-subgroup"><h3>'+esc(name)+' <small>'+got+'／'+items.length+'</small></h3>'+hidden+'<div class="sticker-grid character-grid">'+items.map(({item,i})=>state.stickers.includes(i)?'<article class="sticker character-card tier-'+item.tier+'">'+rewardSticker(item)+'<b>'+esc(item.name)+'</b><small>'+esc(item.series)+'</small></article>':'<div class="sticker character-card locked" aria-label="尚未收藏的角色牌"><span class="locked-character" aria-hidden="true">?</span><small>'+esc(item.series)+' · 待收藏</small></div>').join('')+'</div></section>';}).join('');
     const prize=complete?'<details class="set-poster"><summary>✦ 查看隱藏收藏大圖</summary>'+upgradePoster(scene,sceneIndex)+'</details>':'<p class="locked-poster">🔒 再收集 '+(cards.length-collected)+' 張，解鎖這個主題的隱藏大圖。</p>';
     return '<section class="sticker-set" id="set-'+scene.id+'"><header><h2>'+scene.character+'</h2><span>'+collected+'／'+cards.length+' 張'+(complete?' · 已集滿':'')+'</span></header>'+prize+groupHTML+'</section>';
   }).join('');
@@ -246,9 +248,12 @@ function upgradeCheckersClick(index) {
 }
 function upgradeAllCheckerMoves(board,color){const choices=[];board.forEach((piece,i)=>{if(piece&&piece%10===color)upgradeCheckerMoves(board,i).forEach(move=>choices.push({i,move}));});return choices;}
 function upgradeCheckersBot(){const g=upgradeMini;if(!g||g.kind!=='checkers'||g.result||g.turn!==2)return;const choices=upgradeAllCheckerMoves(g.board,2);if(!choices.length){upgradeMiniFinish('藍色棋無棋可走，紅色獲勝！');upgradeMiniPage();return;}const jumps=choices.filter(x=>x.move.over),pickMove=pick(jumps.length?jumps:choices);g.selected=pickMove.i;upgradeCheckersClick(pickMove.move.to);}
-function upgradeTicHTML(g){return '<div class="tic-board">'+g.board.map((cell,i)=>'<button data-mini-ttt="'+i+'" '+(cell||g.result?'disabled':'')+'>'+cell+'</button>').join('')+'</div><p class="mini-rule">圈圈先走，連成三個就是勝利。</p>';}
+function upgradeTicHTML(g){return '<div class="tic-board">'+g.board.map((cell,i)=>'<button data-mini-ttt="'+i+'" '+(cell||g.result||(g.computer&&g.turn==='O')?'disabled':'')+'>'+cell+'</button>').join('')+'</div><p class="mini-rule">圈圈先走，連成三個就是勝利。對電腦模式由藍色 O 自動思考後落子。</p>';}
 function upgradeTicWinner(board){for(const line of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(board[line[0]]&&line.every(i=>board[i]===board[line[0]]))return board[line[0]];return board.every(Boolean)?'平手':'';}
-function upgradeTicClick(i){const g=upgradeMini;if(g.board[i]||g.result)return;g.board[i]=g.turn;const winner=upgradeTicWinner(g.board);if(winner)return upgradeMiniFinish(winner==='平手'?'棋盤填滿，這局平手！':winner+' 連成三個，獲勝！'),upgradeMiniPage();g.turn=g.turn==='X'?'O':'X';g.notice='換下一位。';upgradeMiniPage();if(g.computer&&g.turn==='O')upgradeMiniTimer=setTimeout(()=>{const empty=g.board.map((v,i)=>v?null:i).filter(Number.isInteger),center=empty.includes(4)?4:pick(empty);upgradeTicClick(center);},380);}
+function upgradeTicScore(board,turn,depth=0){const winner=upgradeTicWinner(board);if(winner==='O')return 10-depth;if(winner==='X')return depth-10;if(winner==='平手')return 0;const scores=[];for(let i=0;i<9;i++)if(!board[i]){board[i]=turn;scores.push(upgradeTicScore(board,turn==='O'?'X':'O',depth+1));board[i]='';}return turn==='O'?Math.max(...scores):Math.min(...scores);}
+function upgradeTicComputerMove(board){let best=-Infinity,choice=-1;for(const i of [4,0,2,6,8,1,3,5,7]){if(board[i])continue;board[i]='O';const score=upgradeTicScore(board,'X');board[i]='';if(score>best){best=score;choice=i;}}return choice;}
+function scheduleTicComputer(g){clearTimeout(upgradeMiniTimer);upgradeMiniTimer=setTimeout(()=>{if(upgradeMini!==g||g.result||g.turn!=='O'||!g.computer)return;const move=upgradeTicComputerMove(g.board);if(move>=0)upgradeTicClick(move,true);},420);}
+function upgradeTicClick(i,fromComputer=false){const g=upgradeMini;if(!g||g.board[i]||g.result||(g.computer&&g.turn==='O'&&!fromComputer))return;g.board[i]=g.turn;const winner=upgradeTicWinner(g.board);if(winner){upgradeMiniFinish(winner==='平手'?'棋盤填滿，這局平手！':winner+' 連成三個，獲勝！');return upgradeMiniPage();}g.turn=g.turn==='X'?'O':'X';g.notice=g.computer&&g.turn==='O'?'電腦正在想最佳一步…':'換下一位。';upgradeMiniPage();if(g.computer&&g.turn==='O')scheduleTicComputer(g);}
 function upgradeMemoryHTML(g){return '<div class="mini-memory-board">'+g.deck.map((v,i)=>'<button data-mini-card="'+i+'" class="'+(g.open.includes(i)||g.matched.includes(i)?'open':'')+'" '+(g.matched.includes(i)?'disabled':'')+'>'+((g.open.includes(i)||g.matched.includes(i))?v:'✦')+'</button>').join('')+'</div><p class="mini-rule">一次翻兩張，找到六對動物朋友。</p>';}
 function upgradeMemoryClick(i){const g=upgradeMini;if(g.open.includes(i)||g.matched.includes(i)||g.open.length===2)return;g.open.push(i);sound('card');upgradeMiniPage();if(g.open.length===2){const [a,b]=g.open;if(g.deck[a]===g.deck[b]){g.matched.push(a,b);g.open=[];if(g.matched.length===g.deck.length)upgradeMiniFinish('所有動物朋友都找到彼此了！');upgradeMiniPage();}else upgradeMiniTimer=setTimeout(()=>{if(upgradeMini===g){g.open=[];upgradeMiniPage();}},700);}}
 const UPGRADE_RACE_META={snakes:{length:100,token:['🐰','🐢'],special:{4:14,9:31,20:38,28:84,17:7,54:34,62:19,87:24,95:75}},raft:{length:30,token:['🦊','🦦'],special:{5:10,12:18,21:27,16:11,25:19}},colorpath:{length:30,token:['🟣','🟢'],special:{4:7,12:15,21:25}},treasuretrail:{length:30,token:['🧭','💎'],special:{6:10,14:18,23:28}},shapehop:{length:28,token:['🔺','🔵'],special:{3:6,10:14,18:22}},weatherway:{length:28,token:['☂️','🧢'],special:{5:9,13:17,20:25}}};
