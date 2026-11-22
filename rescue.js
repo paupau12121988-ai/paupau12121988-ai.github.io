@@ -2,47 +2,47 @@
 
 const RESCUE_STAGES = [
   {
-    name:'花園小徑', guide:5, steps:10, supplies:{'0,2':'food','4,2':'water'},
+    name:'花園小徑', guide:5, steps:24, supplies:{'0,2':'food','4,2':'water'},
     map:['S..#..G','.##.#..','...#...','.#.C.#.','...#...','.###.#.','.......'],
     chests:{C:{key:'星星鑰匙', clue:'下一關的門鎖密碼是「星星」。'}},
     objective:'找到寶箱，帶著星星鑰匙前往下一關。'
   },
   {
-    name:'星光森林', guide:1, steps:10, supplies:{'2,2':'water','5,4':'food'},
+    name:'星光森林', guide:1, steps:28, supplies:{'2,2':'water','5,4':'food'},
     map:['S...#..','##L##.#','......#','.#.##.#','.#.C..#','.#.#.##','...#..G'],
     gate:{options:['月亮','星星','愛心'], answer:'星星', key:'星星鑰匙'},
     chests:{C:{key:'月亮鑰匙', clue:'下一關的門鎖密碼是「水滴」。'}},
     objective:'用上一關的提示打開森林門，再往深處找寶箱。'
   },
   {
-    name:'水滴溪谷', guide:4, steps:16, supplies:{'2,2':'water','6,2':'food'},
+    name:'水滴溪谷', guide:4, steps:30, supplies:{'2,2':'water','6,2':'food'},
     map:['S..#...','##L#.#.','...#.#.','.#...#.','.#.##..','...C##.','.###..G'],
     gate:{options:['水滴','花朵','雲朵'], answer:'水滴', key:'月亮鑰匙'},
     chests:{C:{key:'水滴鑰匙', clue:'下一關的門鎖密碼是「雲朵、星星」。'}},
     objective:'過溪前先補充水，找齊鑰匙與線索。'
   },
   {
-    name:'雲朵丘陵', guide:2, steps:9, supplies:{'3,2':'food','6,5':'water'},
+    name:'雲朵丘陵', guide:2, steps:26, supplies:{'3,2':'food','6,5':'water'},
     map:['S.L.#..','##..#.#','..#...#','.##.###','....C..','.#####.','......G'],
     gate:{options:['星星、雲朵','愛心、雲朵','雲朵、星星'], answer:'雲朵、星星', key:'水滴鑰匙'},
     chests:{C:{key:'雲朵鑰匙', clue:'最後一關的門鎖密碼是「月亮、愛心」。紫色鑰匙救庫洛米，粉色鑰匙救美樂蒂。'}},
     objective:'在岔路間找寶箱與補給，再前往城堡。'
   },
   {
-    name:'雙心城堡', guide:5, steps:20, supplies:{'2,2':'food','2,6':'water','5,6':'food'},
+    name:'雙心城堡', guide:5, steps:34, supplies:{'2,2':'food','2,6':'water','5,6':'food'},
     map:['S.L...#','##.##..','A...#.#','.###...','...#.#K','##.#.#.','B.....M'],
     gate:{options:['愛心、月亮','月亮、愛心','星星、月亮'], answer:'月亮、愛心', key:'月亮鑰匙'},
     chests:{A:{key:'紫色鑰匙', clue:'紫色鑰匙可以救出庫洛米。'},B:{key:'粉色鑰匙', clue:'粉色鑰匙可以救出美樂蒂。'}},
     objective:'找兩個寶箱，分別打開庫洛米和美樂蒂的房門。'
   },
   {
-    name:'星光舞台', guide:3, steps:18, supplies:{'1,2':'water','5,2':'food','4,5':'water'},
+    name:'星光舞台', guide:3, steps:32, supplies:{'1,2':'water','5,2':'food','4,5':'water'},
     map:['S..#...','.##.#.#','...C...','.#.###.','.#...#.','.###.#.','.....HG'],
     chests:{C:{key:'音符鑰匙', clue:'音符鑰匙能打開星光舞台的房門，救出獵魔女團。'}},
     objective:'用音符鑰匙打開舞台房門，救出等待的獵魔女團。'
   },
   {
-    name:'彩虹終點站', guide:0, steps:22, supplies:{'1,2':'food','5,2':'water','3,5':'food','6,5':'water'},
+    name:'彩虹終點站', guide:0, steps:36, supplies:{'1,2':'food','5,2':'water','3,5':'food','6,5':'water'},
     map:['S..#...','.##.#.#','A...#..','.###.##','...#...','.#.###.','D....PB'],
     chests:{A:{key:'雲朵鑰匙', clue:'雲朵鑰匙可以救出大耳狗。'},B:{key:'愛心鑰匙', clue:'愛心鑰匙可以救出愛心萌可。'}},
     objective:'完成最後的兩把鑰匙任務，救出大耳狗與愛心萌可。'
@@ -53,10 +53,13 @@ const SUPPLIES={food:{icon:'🍙',name:'飯糰',steps:6},water:{icon:'💧',name
 const RESCUE_FRIENDS={K:{name:'庫洛米',key:'紫色鑰匙'},M:{name:'美樂蒂',key:'粉色鑰匙'},H:{name:'獵魔女團',key:'音符鑰匙'},D:{name:'大耳狗',key:'雲朵鑰匙'},P:{name:'愛心萌可',key:'愛心鑰匙'}};
 const RESCUE_FRIEND_STAGE={K:4,M:4,H:5,D:6,P:6};
 let rescuePanel = null;
-const newRescue = ()=>({edition:5,stage:0,x:0,y:0,keys:[],clues:[],opened:[],gates:[],friends:[],steps:RESCUE_STAGES[0].steps,supplies:[]});
+const newRescue = ()=>({edition:6,stage:0,x:0,y:0,keys:[],clues:[],opened:[],gates:[],friends:[],steps:RESCUE_STAGES[0].steps,supplies:[]});
 
 function upgradeRescue(run) {
-  if (run.edition===5) return;
+  if (run.edition===6) return;
+  // 舊版關卡有路徑與步數不相容問題，直接安全地從新版第一關重新開始。
+  Object.assign(run,newRescue());
+  return;
   if (run.stage===2) {
     run.stage=4;
     run.opened=run.opened.map(id=>id.startsWith('2')?'4'+id.slice(1):id);

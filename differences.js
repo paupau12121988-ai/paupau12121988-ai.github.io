@@ -33,9 +33,12 @@ function beginDifferences(scene,level=0) {
 }
 function differenceCoordinates(region) {return {x:region.x/768*100,y:region.y/512*100,rx:region.rx/768*100,ry:region.ry/512*100};}
 function objectPatch(scene,region) {
-  const {x,y,rx,ry}=differenceCoordinates(region), size=Math.max(rx,ry)*2;
-  const glyph={add:'✦',remove:'',shrink:'●',rotate:'➤',pattern:'▧',swap:'♡',grow:'●',ribbon:'⌁',tint:'●',sparkle:'✦'}[region.type];
-  return '<div class="object-patch patch-'+region.type+'" aria-hidden="true" style="--patch-x:'+x+'%;--patch-y:'+y+'%;--patch-w:'+Math.max(6,rx*2)+'%;--patch-h:'+Math.max(7,ry*2)+'%;--patch-size:'+size+'px;--patch-turn:'+(region.variant%4*90)+'deg"><span class="difference-glyph">'+glyph+'</span></div>';
+  const {x,y,rx,ry}=differenceCoordinates(region);
+  // 使用內嵌樣式繪製真正可見的變化物件，不再依賴瀏覽器可能快取到的舊 CSS 偽元素。
+  const token={add:['✦','#ffce4f'],remove:['⊘','#786d8a'],shrink:['●','#8c70c8'],rotate:['➤','#55aabe'],pattern:['▧','#e878a0'],swap:['♥','#70b999'],grow:['●','#ef719b'],ribbon:['〰','#9970c8'],tint:['●','#4f9fd1'],sparkle:['✦','#f29a3a']}[region.type];
+  const size=Math.max(30,Math.round(Math.max(rx,ry)*2.4));
+  const style='position:absolute;left:'+x+'%;top:'+y+'%;width:'+size+'px;height:'+size+'px;transform:translate(-50%,-50%) rotate('+(region.type==='rotate'?region.variant%4*90:0)+'deg);z-index:30;display:flex;align-items:center;justify-content:center;border:3px solid #fff;border-radius:50%;background:'+token[1]+';color:#fff;font-size:'+Math.round(size*.68)+'px;font-weight:900;line-height:1;box-shadow:0 2px 7px #33224499;pointer-events:none;text-shadow:0 1px 2px #4b355c99';
+  return '<span class="difference-token" aria-label="變化物件：'+region.label+'" style="'+style+'">'+token[0]+'</span>';
 }
 function objectSpot(region,index,found,hinted,right) {
   const {x,y,rx,ry}=differenceCoordinates(region), position='left:'+x+'%;top:'+y+'%;width:'+Math.max(8,rx*2)+'%;height:'+Math.max(10,ry*2)+'%';

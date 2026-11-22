@@ -231,8 +231,8 @@ function upgradeCheckerMoves(board,index) {
   const piece=board[index],color=piece%10,king=piece>2,x=index%8,y=Math.floor(index/8),dirs=king?[[-1,-1],[1,-1],[-1,1],[1,1]]:color===1?[[-1,1],[1,1]]:[[-1,-1],[1,-1]],moves=[];
   dirs.forEach(([dx,dy])=>{const nx=x+dx,ny=y+dy,near=ny*8+nx,jx=x+dx*2,jy=y+dy*2,jump=jy*8+jx;if(nx>=0&&nx<8&&ny>=0&&ny<8&&!board[near])moves.push({to:near});if(jx>=0&&jx<8&&jy>=0&&jy<8&&board[near]&&board[near]%10!==color&&!board[jump])moves.push({to:jump,over:near});});return moves;
 }
-function upgradeCheckersClick(index) {
-  const g=upgradeMini;if(!g||g.result||g.turn===2&&g.computer)return;const piece=g.board[index];
+function upgradeCheckersClick(index,fromComputer=false) {
+  const g=upgradeMini;if(!g||g.result||(g.turn===2&&g.computer&&!fromComputer))return;const piece=g.board[index];
   if(piece&&piece%10===g.turn){g.selected=index;g.notice='選好棋子，找一個斜前方的空格。';return upgradeMiniPage();}
   if(g.selected===null)return;const move=upgradeCheckerMoves(g.board,g.selected).find(x=>x.to===index);if(!move){g.notice='這一步不能這樣走，試試斜前方的空格。';return upgradeMiniPage();}
   const from=g.selected, moving=g.board[from];g.board[index]=moving;g.board[from]=0;if(move.over)g.board[move.over]=0;const row=Math.floor(index/8);if((moving===1&&row===7)||(moving===2&&row===0))g.board[index]=moving+10;g.selected=null;g.turn=3-g.turn;
@@ -247,7 +247,7 @@ function upgradeCheckersClick(index) {
   upgradeMiniPage();
 }
 function upgradeAllCheckerMoves(board,color){const choices=[];board.forEach((piece,i)=>{if(piece&&piece%10===color)upgradeCheckerMoves(board,i).forEach(move=>choices.push({i,move}));});return choices;}
-function upgradeCheckersBot(){const g=upgradeMini;if(!g||g.kind!=='checkers'||g.result||g.turn!==2)return;const choices=upgradeAllCheckerMoves(g.board,2);if(!choices.length){upgradeMiniFinish('藍色棋無棋可走，紅色獲勝！');upgradeMiniPage();return;}const jumps=choices.filter(x=>x.move.over),pickMove=pick(jumps.length?jumps:choices);g.selected=pickMove.i;upgradeCheckersClick(pickMove.move.to);}
+function upgradeCheckersBot(){const g=upgradeMini;if(!g||g.kind!=='checkers'||g.result||g.turn!==2)return;const choices=upgradeAllCheckerMoves(g.board,2);if(!choices.length){upgradeMiniFinish('藍色棋無棋可走，紅色獲勝！');upgradeMiniPage();return;}const jumps=choices.filter(x=>x.move.over),pickMove=pick(jumps.length?jumps:choices);g.selected=pickMove.i;upgradeCheckersClick(pickMove.move.to,true);}
 function upgradeTicHTML(g){return '<div class="tic-board">'+g.board.map((cell,i)=>'<button data-mini-ttt="'+i+'" '+(cell||g.result||(g.computer&&g.turn==='O')?'disabled':'')+'>'+cell+'</button>').join('')+'</div><p class="mini-rule">圈圈先走，連成三個就是勝利。對電腦模式由藍色 O 自動思考後落子。</p>';}
 function upgradeTicWinner(board){for(const line of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(board[line[0]]&&line.every(i=>board[i]===board[line[0]]))return board[line[0]];return board.every(Boolean)?'平手':'';}
 function upgradeTicScore(board,turn,depth=0){const winner=upgradeTicWinner(board);if(winner==='O')return 10-depth;if(winner==='X')return depth-10;if(winner==='平手')return 0;const scores=[];for(let i=0;i<9;i++)if(!board[i]){board[i]=turn;scores.push(upgradeTicScore(board,turn==='O'?'X':'O',depth+1));board[i]='';}return turn==='O'?Math.max(...scores):Math.min(...scores);}
