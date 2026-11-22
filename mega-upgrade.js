@@ -200,7 +200,12 @@ function upgradeMiniFinish(message) {
 }
 function upgradeMiniHeader() {
   const info=BOARD_GAMES[upgradeMini.kind];
-  return '<button class="back" id="mini-back">← 棋類與拼圖</button><h1>'+info.icon+' '+info.name+'</h1><p>'+info.description+'</p><div class="board-status" role="status">'+esc(upgradeMini.result||upgradeMini.notice||'輪到玩家 '+(upgradeMini.turn+1||upgradeMini.turn))+'</div>';
+  const turnLabel=upgradeMini.kind==='tictactoe'
+    ? '輪到 '+upgradeMini.turn
+    : upgradeMini.kind==='checkers'
+      ? '輪到'+(upgradeMini.turn===1?'紅色棋':'藍色棋')
+      : '輪到玩家 '+(upgradeMini.turn+1);
+  return '<button class="back" id="mini-back">← 棋類與拼圖</button><h1>'+info.icon+' '+info.name+'</h1><p>'+info.description+'</p><div class="board-status" role="status">'+esc(upgradeMini.result||upgradeMini.notice||turnLabel)+'</div>';
 }
 function upgradeMiniPage() {
   const g=upgradeMini; if(!g)return;
@@ -225,14 +230,22 @@ function upgradeCheckerMoves(board,index) {
   dirs.forEach(([dx,dy])=>{const nx=x+dx,ny=y+dy,near=ny*8+nx,jx=x+dx*2,jy=y+dy*2,jump=jy*8+jx;if(nx>=0&&nx<8&&ny>=0&&ny<8&&!board[near])moves.push({to:near});if(jx>=0&&jx<8&&jy>=0&&jy<8&&board[near]&&board[near]%10!==color&&!board[jump])moves.push({to:jump,over:near});});return moves;
 }
 function upgradeCheckersClick(index) {
-  const g=upgradeMini;if(g.turn===2&&g.computer)return;const piece=g.board[index];
+  const g=upgradeMini;if(!g||g.result||g.turn===2&&g.computer)return;const piece=g.board[index];
   if(piece&&piece%10===g.turn){g.selected=index;g.notice='選好棋子，找一個斜前方的空格。';return upgradeMiniPage();}
   if(g.selected===null)return;const move=upgradeCheckerMoves(g.board,g.selected).find(x=>x.to===index);if(!move){g.notice='這一步不能這樣走，試試斜前方的空格。';return upgradeMiniPage();}
   const from=g.selected, moving=g.board[from];g.board[index]=moving;g.board[from]=0;if(move.over)g.board[move.over]=0;const row=Math.floor(index/8);if((moving===1&&row===7)||(moving===2&&row===0))g.board[index]=moving+10;g.selected=null;g.turn=3-g.turn;
-  if(!g.board.some(p=>p&&p%10===g.turn))upgradeMiniFinish((g.turn===1?'藍色':'紅色')+'棋沒有棋子了，'+(g.turn===1?'紅色':'藍色')+'獲勝！');else {g.notice=move.over?'漂亮的跳吃！':'換下一位。';upgradeMiniPage();if(g.computer&&g.turn===2)upgradeMiniTimer=setTimeout(upgradeCheckersBot,480);}
+  const opponentMoves=upgradeAllCheckerMoves(g.board,g.turn);
+  if(!g.board.some(p=>p&&p%10===g.turn)||!opponentMoves.length) {
+    const winner=g.turn===1?'藍色':'紅色';
+    upgradeMiniFinish((g.turn===1?'紅色':'藍色')+'讓對手無棋可走，'+winner+'獲勝！');
+  } else {
+    g.notice=move.over?'漂亮的跳吃！':'換下一位。';
+    if(g.computer&&g.turn===2)upgradeMiniTimer=setTimeout(upgradeCheckersBot,480);
+  }
   upgradeMiniPage();
 }
-function upgradeCheckersBot(){const g=upgradeMini;if(!g||g.kind!=='checkers'||g.result||g.turn!==2)return;const choices=[];g.board.forEach((p,i)=>{if(p&&p%10===2)upgradeCheckerMoves(g.board,i).forEach(move=>choices.push({i,move}));});const pickMove=pick(choices);if(!pickMove)return;g.selected=pickMove.i;upgradeCheckersClick(pickMove.move.to);}
+function upgradeAllCheckerMoves(board,color){const choices=[];board.forEach((piece,i)=>{if(piece&&piece%10===color)upgradeCheckerMoves(board,i).forEach(move=>choices.push({i,move}));});return choices;}
+function upgradeCheckersBot(){const g=upgradeMini;if(!g||g.kind!=='checkers'||g.result||g.turn!==2)return;const choices=upgradeAllCheckerMoves(g.board,2);if(!choices.length){upgradeMiniFinish('藍色棋無棋可走，紅色獲勝！');upgradeMiniPage();return;}const jumps=choices.filter(x=>x.move.over),pickMove=pick(jumps.length?jumps:choices);g.selected=pickMove.i;upgradeCheckersClick(pickMove.move.to);}
 function upgradeTicHTML(g){return '<div class="tic-board">'+g.board.map((cell,i)=>'<button data-mini-ttt="'+i+'" '+(cell||g.result?'disabled':'')+'>'+cell+'</button>').join('')+'</div><p class="mini-rule">圈圈先走，連成三個就是勝利。</p>';}
 function upgradeTicWinner(board){for(const line of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(board[line[0]]&&line.every(i=>board[i]===board[line[0]]))return board[line[0]];return board.every(Boolean)?'平手':'';}
 function upgradeTicClick(i){const g=upgradeMini;if(g.board[i]||g.result)return;g.board[i]=g.turn;const winner=upgradeTicWinner(g.board);if(winner)return upgradeMiniFinish(winner==='平手'?'棋盤填滿，這局平手！':winner+' 連成三個，獲勝！'),upgradeMiniPage();g.turn=g.turn==='X'?'O':'X';g.notice='換下一位。';upgradeMiniPage();if(g.computer&&g.turn==='O')upgradeMiniTimer=setTimeout(()=>{const empty=g.board.map((v,i)=>v?null:i).filter(Number.isInteger),center=empty.includes(4)?4:pick(empty);upgradeTicClick(center);},380);}
@@ -240,7 +253,7 @@ function upgradeMemoryHTML(g){return '<div class="mini-memory-board">'+g.deck.ma
 function upgradeMemoryClick(i){const g=upgradeMini;if(g.open.includes(i)||g.matched.includes(i)||g.open.length===2)return;g.open.push(i);sound('card');upgradeMiniPage();if(g.open.length===2){const [a,b]=g.open;if(g.deck[a]===g.deck[b]){g.matched.push(a,b);g.open=[];if(g.matched.length===g.deck.length)upgradeMiniFinish('所有動物朋友都找到彼此了！');upgradeMiniPage();}else upgradeMiniTimer=setTimeout(()=>{if(upgradeMini===g){g.open=[];upgradeMiniPage();}},700);}}
 const UPGRADE_RACE_META={snakes:{length:100,token:['🐰','🐢'],special:{4:14,9:31,20:38,28:84,17:7,54:34,62:19,87:24,95:75}},raft:{length:30,token:['🦊','🦦'],special:{5:10,12:18,21:27,16:11,25:19}},colorpath:{length:30,token:['🟣','🟢'],special:{4:7,12:15,21:25}},treasuretrail:{length:30,token:['🧭','💎'],special:{6:10,14:18,23:28}},shapehop:{length:28,token:['🔺','🔵'],special:{3:6,10:14,18:22}},weatherway:{length:28,token:['☂️','🧢'],special:{5:9,13:17,20:25}}};
 function upgradeRaceHTML(g){const meta=UPGRADE_RACE_META[g.kind],cells=Array.from({length:meta.length},(_,i)=>{const n=i+1,players=g.positions.map((p,j)=>p===i?'<i>'+meta.token[j]+'</i>':'').join(''),special=meta.special[n],marker=special?(special>n?'🪜':'🐍'):g.kind==='raft'&&n%6===0?'🌊':g.kind==='treasuretrail'&&n%6===0?'🧰':g.kind==='shapehop'&&n%5===0?'⭐':g.kind==='weatherway'&&n%5===0?'🌧️':'';return '<div class="race-cell '+(special?'special':'')+'"><small>'+n+'</small><span>'+marker+'</span>'+players+'</div>';}).join('');return '<div class="race-board race-'+g.kind+'">'+cells+'</div><div class="game-actions"><button class="primary" id="mini-roll">🎲 擲骰子</button></div><p class="mini-rule">玩家 '+(g.turn+1)+' 的回合。'+(g.lastRoll?'剛剛擲到 '+g.lastRoll+' 點。':'')+'</p>';}
-function upgradeRaceRoll(){const g=upgradeMini,meta=UPGRADE_RACE_META[g.kind],roll=rand(1,6),player=g.turn;g.lastRoll=roll;let next=Math.min(meta.length-1,g.positions[player]+roll),number=next+1;if(meta.special[number]){next=meta.special[number]-1;g.notice=meta.special[number]>number?'遇到好幫手，向前跳！':'哎呀，沿著蛇滑回去。';}else g.notice='前進 '+roll+' 格！';if(g.kind==='treasuretrail'&&number%6===0){next=Math.min(meta.length-1,next+2);g.notice='找到寶箱，額外前進 2 格！';}if(g.kind==='weatherway'&&number%5===0){next=Math.min(meta.length-1,next+1);g.notice='準備好雨具，額外前進 1 格！';}g.positions[player]=next;if(next===meta.length-1){upgradeMiniFinish('玩家 '+(player+1)+' 抵達終點，獲勝！');return upgradeMiniPage();}g.turn=1-player;upgradeMiniPage();if(g.computer&&g.turn===1)upgradeMiniTimer=setTimeout(upgradeRaceRoll,520);}
+function upgradeRaceRoll(){const g=upgradeMini;if(!g||g.result)return;const meta=UPGRADE_RACE_META[g.kind];if(!meta)return;const roll=rand(1,6),player=g.turn;g.lastRoll=roll;let next=Math.min(meta.length-1,g.positions[player]+roll),number=next+1;if(meta.special[number]){next=meta.special[number]-1;g.notice=meta.special[number]>number?'遇到好幫手，向前跳！':'哎呀，沿著蛇滑回去。';}else g.notice='前進 '+roll+' 格！';if(g.kind==='treasuretrail'&&number%6===0){next=Math.min(meta.length-1,next+2);g.notice='找到寶箱，額外前進 2 格！';}if(g.kind==='weatherway'&&number%5===0){next=Math.min(meta.length-1,next+1);g.notice='準備好雨具，額外前進 1 格！';}g.positions[player]=next;if(next===meta.length-1){upgradeMiniFinish('玩家 '+(player+1)+' 抵達終點，獲勝！');return upgradeMiniPage();}g.turn=1-player;upgradeMiniPage();if(g.computer&&g.turn===1)upgradeMiniTimer=setTimeout(upgradeRaceRoll,520);}
 
 arcadePage=function(){upgradeOriginalArcadePage();$$('.arcade-boards article').forEach((card,i)=>{const gameInfo=Object.values(BOARD_GAMES)[i];const icon=card.querySelector('.arcade-board-icon');if(icon&&gameInfo?.icon)icon.textContent=gameInfo.icon;});$('.activity-page')?.insertAdjacentHTML('beforeend',hunterCompanion('獵魔女團挑戰你：桌遊要先看規則，再慢慢想下一步！'));};
 

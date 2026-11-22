@@ -38,8 +38,9 @@ function objectPatch(scene,region) {
 }
 function objectSpot(region,index,found,right) {
   const {x,y,rx,ry}=differenceCoordinates(region), position='left:'+x+'%;top:'+y+'%;width:'+Math.max(8,rx*2)+'%;height:'+Math.max(10,ry*2)+'%';
-  if(!right)return found?'<span class="object-spot found" style="'+position+'" aria-hidden="true">✓</span>':'';
-  return '<button class="object-spot'+(found?' found':'')+'" data-spot="'+index+'" style="'+position+'" aria-label="'+(found?region.label+'，已找到':'查看'+region.label)+'" '+(found?'disabled':'')+'>'+(found?'✓':'')+'</button>';
+  // 兩張圖都可以點選。孩子常會先在原圖發現線索；舊版只有右圖能按，
+  // 在觸控裝置上很容易誤以為關卡失效。
+  return '<button class="object-spot'+(found?' found':'')+'" data-spot="'+index+'" style="'+position+'" aria-label="'+(found?region.label+'，已找到':(right?'查看變化圖的':'查看原圖的')+region.label)+'" '+(found?'disabled':'')+'>'+(found?'✓':'')+'</button>';
 }
 function differenceScene(g,right) {
   const regions=differenceVariant(g.scene,g.level), patches=right?g.changed.map(i=>objectPatch(g.scene,regions[i])).join(''):'';
@@ -49,5 +50,6 @@ function paintDifferences() {
   const g=pictureGame,title=SCENE_PACKS[g.scene];
   shell('<section class="activity-page"><button class="back" id="picture-back">← 棋類與拼圖</button><h1>'+title.character+' · 找不同</h1><p>第 '+(g.level+1)+'／'+DIFFERENCE_LEVELS+' 張構圖挑戰：兩張圖有 <strong>10 處</strong>不同。除了變色，還藏了新增、消失、縮放、旋轉與圖案改變。</p><div class="diff-levels" aria-label="找不同關卡選擇">'+Array.from({length:DIFFERENCE_LEVELS},(_,i)=>'<button data-diff-level="'+i+'" class="'+(i===g.level?'current':'')+'" aria-label="第 '+(i+1)+' 張">'+(i+1)+'</button>').join('')+'</div><p class="board-status" role="status">找到 '+g.found.length+'／'+g.changed.length+' 處</p><div class="compare-pair">'+differenceScene(g,false)+differenceScene(g,true)+'</div><div id="picture-reward"></div><div class="game-actions"><button class="secondary" id="diff-retry">重看這張</button><button class="primary" id="diff-next">下一張構圖 →</button></div></section>','arcade');
   $('#picture-back').onclick=()=>navigate('arcade');$('#diff-retry').onclick=()=>beginDifferences(g.scene,g.level);$('#diff-next').onclick=()=>beginDifferences(g.scene,(g.level+1)%DIFFERENCE_LEVELS);$$('[data-diff-level]').forEach(button=>button.onclick=()=>beginDifferences(g.scene,+button.dataset.diffLevel));
-  const last=$$('.object-board').at(-1);last.onclick=event=>{if(g.done)return;const spot=event.target.closest('[data-spot]'),index=spot?+spot.dataset.spot:-1;if(g.found.includes(index))return;if(!g.changed.includes(index)){sound('hint');$('.board-status').textContent='找到 '+g.found.length+'／10 處，這裡相同，再仔細看物件的形狀、數量和方向。';return;}g.found.push(index);g.done=g.found.length===g.changed.length;sound('found');paintDifferences();$('.board-status').textContent+='，找到「'+differenceVariant(g.scene,g.level)[index].label+'」！';if(g.done)pictureWon('10 處不同全部找到！');else $$('[data-spot]').find(button=>!button.disabled)?.focus({preventScroll:true});};
+  const inspect=event=>{if(g.done)return;const spot=event.target.closest('[data-spot]'),index=spot?+spot.dataset.spot:-1;if(index<0||g.found.includes(index))return;if(!g.changed.includes(index)){sound('hint');$('.board-status').textContent='找到 '+g.found.length+'／10 處，這裡相同，再仔細看物件的形狀、數量和方向。';return;}g.found.push(index);g.done=g.found.length===g.changed.length;sound('found');paintDifferences();$('.board-status').textContent+='，找到「'+differenceVariant(g.scene,g.level)[index].label+'」！';if(g.done)pictureWon('10 處不同全部找到！');else $$('[data-spot]').find(button=>!button.disabled)?.focus({preventScroll:true});};
+  $$('.object-board').forEach(board=>board.onclick=inspect);
 }
