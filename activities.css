@@ -1,0 +1,9 @@
+.question-cue{display:flex;min-height:52px;align-items:center;justify-content:center;width:max-content;max-width:100%;padding:4px 16px;margin:5px auto 12px;background:#f5eee8;border-radius:18px;font-size:clamp(24px,5vw,38px);letter-spacing:5px}
+.craft-sprite{display:inline-block;width:110px;flex-shrink:0;aspect-ratio:1;background:url('assets/cinnamoroll-and-drawing.png') var(--sx) var(--sy)/300% 200% no-repeat;vertical-align:middle}
+.character-card .craft-sprite{width:min(100%,125px)}#sticker-book .character-card{cursor:default;transform:none}
+.copy-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:14px;align-items:start}
+.copy-workspace .canvas-wrap{width:100%}.copy-reference{margin:0;border:1px solid #e8d9ed;background:#fff7fc;border-radius:16px;padding:12px;color:#63466c}
+.copy-reference .craft-sprite{width:min(100%,150px)}.copy-reference p{font-size:12px;line-height:1.7;margin:8px 0 0}.copy-reference strong{font-size:14px}
+.rescue-steps{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 15px;margin:10px 0 12px;background:#eaf4ec;color:#345c4a;border:1px solid #b9d5be;border-radius:13px}
+.rescue-steps.low{background:#fff0df;color:#8a472b;border-color:#eac6a1}.rescue-steps span{font-size:13px}.rescue-retry{margin:0 0 12px}.rescue-controls button:disabled{opacity:.45;cursor:default}.rescue-route{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
+@media(max-width:600px){.copy-workspace{grid-template-columns:1fr}.copy-reference{display:flex;align-items:center;gap:10px;text-align:left}.copy-reference .craft-sprite{width:94px}.rescue-route{grid-template-columns:repeat(2,minmax(0,1fr))}.rescue-steps{font-size:14px}}
